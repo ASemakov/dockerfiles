@@ -5,49 +5,33 @@ services:
     zookeeper:
         image: zookeeper
         restart: always
-        ports:
-            - 2181:2181
         environment:
             ZOO_MY_ID: 1
-            ZOO_SERVERS: server.1=zookeeper:2888:3888
-        networks:
-            - custom
+            ZOO_SERVERS: server.1=localhost:2888:3888
+        network_mode: host
 
     chronos:
-        image: mesosphere/chronos:v3.0.1
+        image: mesosphere/chronos:v3.0.2
         restart: always
-        ports: 
-            - 9090:9090
-            - 9091:9091
         environment:
             PORT0: 9090
             PORT1: 9091
-        command: --zk_hosts=zookeeper:2181 --master=zk://zookeeper:2181/mesos
-        networks:
-            - custom
-        depends_on:
-            - zookeeper
+        command: --zk_hosts=localhost:2181 --master=zk://localhost:2181/mesos
+        network_mode: host
 
     marathon:
-        image: mesosphere/marathon:v1.1.7
+        image: mesosphere/marathon:v1.5.5
         restart: always
-        command: --master zk://zookeeper:2181/mesos --zk zk://zookeeper:2181/marathon
-        ports:
-            - 5055:8080
-        networks:
-            - custom
-        depends_on:
-            - zookeeper
+        command: --master zk://localhost:2181/mesos --zk zk://localhost:2181/marathon
+        network_mode: host
 
 
     mesos_master:
-        image: mesosphere/mesos-master:1.1.01.1.0-2.0.107.ubuntu1404
+        image: mesosphere/mesos-master:1.4.1
         restart: always
-        ports: 
-            - 5050:5050
         environment:
             MESOS_PORT: 5050
-            MESOS_ZK: zk://zookeeper:2181/mesos
+            MESOS_ZK: zk://localhost:2181/mesos
             MESOS_QUORUM: 1
             MESOS_HOSTNAME: localhost
             MESOS_REGISTRY: in_memory
@@ -56,24 +40,21 @@ services:
         volumes:
             - ./log/mesos:/var/log/mesos
             - ./tmp/mesos:/var/tmp/mesos
-        networks: 
-            - custom
-        depends_on:
-            - zookeeper
+        network_mode: host
 
-    mesos_slave:
-        image: mesosphere/mesos-slave:1.1.01.1.0-2.0.107.ubuntu1404
+    mesos_agent:
+        image: mesosphere/mesos-agent:1.4.1
         restart: always
-#        ports:
-#            - 5051:5151
         environment:
             MESOS_PORT: 5051
-            MESOS_MASTER: zk://zookeeper:2181/mesos
+            MESOS_MASTER: zk://localhost:2181/mesos
             MESOS_HOSTNAME: localhost
             MESOS_SWITCH_USER: 0
             MESOS_CONTAINERIZERS: docker,mesos
             MESOS_LOG_DIR: /var/log/mesos
             MESOS_WORK_DIR: /var/tmp/mesos
+#            MESOS_LAUNCHER: posix
+            MESOS_SYSTEMD_ENABLE_SUPPORT: "false"
         volumes:
             - ./log/mesos:/var/log/mesos
             - ./tmp/mesos:/var/tmp/mesos
@@ -81,13 +62,5 @@ services:
             - /cgroup:/cgroup
             - /sys:/sys
             - /usr/local/bin/docker:/usr/local/bin/docker
-        networks:
-            - custom
-        depends_on:
-            - zookeeper
-
-
-networks:
-    custom:
-        driver: bridge
+        network_mode: host
 
