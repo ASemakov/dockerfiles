@@ -27,8 +27,10 @@ services:
 
 
     mesos_master:
-        image: mesosphere/mesos-master:1.4.1
+        image: mesosphere/mesos:1.4.1
         restart: always
+        entrypoint: ["mesos-master"]
+        command: ["--registry=in_memory"]
         environment:
             MESOS_PORT: 5050
             MESOS_ZK: zk://localhost:2181/mesos
@@ -43,8 +45,9 @@ services:
         network_mode: host
 
     mesos_agent:
-        image: mesosphere/mesos-agent:1.4.1
+        image: mesosphere/mesos:1.4.1
         restart: always
+        entrypoint: ["mesos-slave"]
         environment:
             MESOS_PORT: 5051
             MESOS_MASTER: zk://localhost:2181/mesos
